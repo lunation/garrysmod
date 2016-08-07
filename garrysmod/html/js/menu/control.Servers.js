@@ -1,5 +1,5 @@
 
-var Scope		= null
+//var Scope		= null
 var RequestNum	= {};
 var DigestUpdate = 0;
 var ServerTypes = {};
@@ -7,56 +7,56 @@ var FirstTime = true;
 
 function ControllerServers( $scope, $element, $rootScope, $location )
 {
-	Scope = $rootScope;
-	Scope.ShowTab = 'internet';
+	console.log("LOAD SERVER CONTROLLER!");
 
-	//if ( !Scope.CurrentGamemode )
-	//	Scope.CurrentGamemode = null;
+	$scope.ShowTab = 'internet';
+	$scope.Refreshing = {};
 	
-	if ( !Scope.Refreshing )
-		Scope.Refreshing = {}
+	// WHAT IS DIFF BETWEEN ShowTab AND ServerType???
 
 	$scope.DoStopRefresh = function()
 	{
-		lua.Run( "DoStopServers( '" + Scope.ServerType + "' )" );
+		lua.Run( "DoStopServers( '" + $scope.ServerType + "' )" );
 	}
 
 	$scope.Refresh = function()
 	{
-		if ( !Scope.ServerType ) return;
+		if ( !$scope.ServerType ) return;
 
-		if ( !RequestNum[ Scope.ServerType ] ) RequestNum[ Scope.ServerType ] = 1; else RequestNum[ Scope.ServerType ]++;
+		if ( !RequestNum[ $scope.ServerType ] )
+			RequestNum[ $scope.ServerType ] = 1;
+		else
+			RequestNum[ $scope.ServerType ]++;
 
 		//
 		// Clear out all of the servers
 		//
-		ServerTypes[Scope.ServerType].gamemodes = {};
-		ServerTypes[Scope.ServerType].list.length = 0;
+		ServerTypes[$scope.ServerType].servers.length = 0;
 		
-		if ( !IN_ENGINE )
-			TestUpdateServers( Scope.ServerType, RequestNum[ Scope.ServerType ] );
+		if ( !IN_ENGINE ) // TODO fix the tests I guess
+			TestUpdateServers( $scope.ServerType, RequestNum[ $scope.ServerType ] );
 
 		//
 		// Get the server list from the engine
 		//
-		lua.Run( "GetServers( '"+Scope.ServerType+"', '"+RequestNum[Scope.ServerType ]+"' )" );
+		lua.Run( "GetServers( '"+$scope.ServerType+"', '"+RequestNum[$scope.ServerType ]+"' )" );
 
-		Scope.Refreshing[Scope.ServerType] = "true";
-		UpdateDigest( Scope, 50 );
+		$scope.Refreshing[$scope.ServerType] = "true";
+		UpdateDigest( $rootScope, 50 ); //always call this with ROOT SCOPE
 	}
 
 	$scope.SelectServer = function( server )
 	{
-		Scope.SelectedServer = server;
+		$scope.SelectedServer = server;
 
-		if ( !IN_ENGINE )
+		if ( !IN_ENGINE ) //TODO make sure this still works!
 			SetPlayerList( server.address, { "1": { "time": 3037.74, "score": 5, "name": "Sethxi" }, "2": { "time": 2029.34, "score": 0, "name": "RedDragon124" }, "3": { "time": 1405.02, "score": 0, "name": "Joke (0_0)" }, "4": { "time": 462.15, "score": 0, "name": "TheAimBot" }, "5": { "time": 301.32, "score": 0, "name": "DesanPL"} } );
 
 		lua.Run( "GetPlayerList( '"+server.address+"' )" );
 		
 		if ( server.DoubleClick )
 		{
-			$scope.JoinServer( server );
+			$scope.JoinServer( server ); //TODO make sure this works!
 			return;
 		}
 
@@ -70,12 +70,13 @@ function ControllerServers( $scope, $element, $rootScope, $location )
 			server.DoubleClick = false;
 		}, 500 )
 	}
-
+	/*
 	$scope.SelectGamemode = function( gm )
 	{
 		Scope.CurrentGamemode = gm;
-	}
-
+	}*/
+	
+	// These two are helpers for CSS classes... I think...	
 	$scope.ServerClass = function( sv )
 	{
 		var tags = "";
@@ -97,20 +98,21 @@ function ControllerServers( $scope, $element, $rootScope, $location )
 
 	$scope.ChangeOrder = function( gm, order )
 	{
-		if ( Scope.OrderServersByMain == order )
+		if ( $scope.OrderServersByMain == order )
 		{
-			Scope.OrderServersReverse = !Scope.OrderServersReverse;
+			$scope.OrderServersReverse = !$scope.OrderServersReverse;
 			return;
 		}
 
-		Scope.OrderServersByMain = order;
-		Scope.OrderServersBy = [order, 'recommended', 'ping', 'address'];
-		Scope.OrderServersReverse = false;
+		$scope.OrderServersByMain = order;
+		$scope.OrderServersBy = [order, 'recommended', 'ping', 'address'];
+		$scope.OrderServersReverse = false;
 
 		//console.log(gm.OrderBy[0]);
 	}
-
-	$scope.GamemodeName = function( gm )
+	
+	// Another helper?
+	/*$scope.GamemodeName = function( gm )
 	{
 		if ( !gm ) return "Unknown Gamemode";
 
@@ -118,19 +120,20 @@ function ControllerServers( $scope, $element, $rootScope, $location )
 			return gm.info.title;
 
 		return gm.name;
-	}
-
-	$scope.JoinServer = function ( gm )
+	}*/
+	
+	// plz do something about this.
+	$scope.JoinServer = function ( server )
 	{
-		if ( gm.password )
-			lua.Run( "RunConsoleCommand( \"password\", \""+gm.password+"\" )" )
+		if ( server.password )
+			lua.Run( "RunConsoleCommand( \"password\", \""+server.password+"\" )" )
 
-		lua.Run( "JoinServer( \""+gm.address+"\" )" )
+		lua.Run( "JoinServer( \""+server.address+"\" )" )
 	}
 
 	$scope.SwitchType = function( type )
 	{
-		if ( Scope.ServerType == type ) return;
+		if ( $scope.ServerType == type ) return;
 
 		var FirstTime = false;
 		if ( !ServerTypes[type] )
@@ -138,21 +141,19 @@ function ControllerServers( $scope, $element, $rootScope, $location )
 			ServerTypes[type] = 
 			{
 				//TODO shitcan both of these -Parakeet				
-				gamemodes: {},
-				list: [],
 				servers: []
 			};
 
 			FirstTime = true;
 		}
 
-		Scope.ServerType		= type;
-		Scope.Gamemodes			= ServerTypes[type].gamemodes;
-		Scope.GamemodeList		= ServerTypes[type].list
-		Scope.CurrentGamemode	= null
+		$scope.ServerType		= type;
+		//Scope.Gamemodes			= ServerTypes[type].gamemodes;
+		//Scope.GamemodeList		= ServerTypes[type].list
 
 		//ADDED -Parakeet
-		Scope.Servers = ServerTypes[type].servers;
+		$scope.Servers = ServerTypes[type].servers;
+
 
 		if ( FirstTime )
 		{
@@ -160,11 +161,13 @@ function ControllerServers( $scope, $element, $rootScope, $location )
 		}
 	}
 
+	/* This is stupid.
 	$scope.InstallGamemode = function( gm )
 	{
 		lua.Run( "steamworks.Subscribe( %s )", String( gm.info.workshopid ) );
-	}
+	}*/
 
+	/* Ditto.
 	$scope.ShouldShowInstall = function( gm )
 	{
 		if ( !gm ) return false;
@@ -174,119 +177,122 @@ function ControllerServers( $scope, $element, $rootScope, $location )
 		if ( subscriptions.Contains( String(gm.info.workshopid) ) ) return false;
 
 		return true;
-	}
+	}*/
 
 	$rootScope.ShowBack = true;
 
 	if ( FirstTime )
 	{
 		FirstTime = false;
-		// Fuck this entire abuse of these scopes. TODO organize scoping better! -Parakeet
-		Scope.OrderServersByMain = 'recommended';
-		Scope.OrderServersBy = ['recommended', 'ping', 'address'];
-		Scope.OrderServersReverse = false;
 		$scope.SwitchType( 'internet' );
 	}
-}
 
-function FinishedServeres( type )
-{
-	Scope.Refreshing[type] = "false";
-	UpdateDigest( Scope, 50 );
-}
+	$scope.OrderServersByMain = 'recommended';
+	$scope.OrderServersBy = ['recommended', 'ping', 'address'];
+	$scope.OrderServersReverse = false;
 
-function GetGamemode( name, type )
-{
-	if ( !ServerTypes[type] ) return;
+	// CALLBACKS BE HERE! WE PUT THEM IN THIS CLOSURE SO WE CAN ACCESS THE SCOPES WITHOUT THINGS GETTING ALL RETARDED!
 
-	if ( ServerTypes[type].gamemodes[name] ) return ServerTypes[type].gamemodes[name]
-
-	ServerTypes[type].gamemodes[name] = 
+	function FinishedServeres( type )
 	{
-		name:			name,
-		servers:		[],
-		num_servers:	0,
-		num_players:	0,
-		OrderByMain:	'recommended',
-		OrderBy:		['recommended', 'ping', 'address'],
-		info:			GetGamemodeInfo( name )
-	};
+		$scope.Refreshing[type] = "false";
+		UpdateDigest( $rootscope, 50 );
+	}
 
-	ServerTypes[type].list.push( ServerTypes[type].gamemodes[name] )
-
-	return ServerTypes[type].gamemodes[name];
-}
-
-function AddServer( type, id, ping, name, desc, map, players, maxplayers, botplayers, pass, lastplayed, address, gamemode, workshopid )
-{
-	// Make sure this addition is part of our current refresh cycle. I do not like this. -Parakeet
-	if ( id != RequestNum[ type ] ) return;
-
-	if ( !gamemode ) gamemode = desc; // wtf? -Parakeet
-	if ( maxplayers <= 1 ) return; // the hell? TODO validate lua-side -Parakeet
-
-	var data =
+	/*function GetGamemode( name, type )
 	{
-		ping:			parseInt( ping ),
-		name:			name,
-		desc:			desc,
-		map:			map,
-		players:		parseInt( players ) - parseInt( botplayers ),
-		maxplayers:		parseInt( maxplayers ),
-		botplayers:		parseInt( botplayers ),
-		pass:			pass, // TODO this is a retarded name -Parakeet
-		lastplayed:		parseInt( lastplayed ),
-		address:		address,
-		gamemode:		gamemode,
-		password:		'', // Does this really need to be here? Maybe?!?
-		workshopid:		workshopid
-	};
+		if ( !ServerTypes[type] ) return;
 
-	data.hasmap = DoWeHaveMap( data.map );
-	
-	// Not sure if I want to keep these ratings or not. If we keep it I want to make the indicator smaller. The bar is dumb. -Parakeet
-	data.recommended = data.ping;
-	if ( !data.hasmap ) data.recommended += 20; // We don't have that map -- Is this really a good idea? Content downloads are usually a much bigger issue than the damn map. -Parakeet
-	if ( data.players == 0 ) data.recommended += 100; // Server is empty
-	if ( data.players == data.maxplayers ) data.recommended += 75; // Server is full
-	if ( data.pass ) data.recommended += 300; // If we can't join it, don't put it to the top
+		if ( ServerTypes[type].gamemodes[name] ) return ServerTypes[type].gamemodes[name]
 
-	data.listen = data.desc.indexOf('[L]') >= 0;
-	if ( data.listen ) data.desc = data.desc.substr( 4 );
+		ServerTypes[type].gamemodes[name] = 
+		{
+			name:			name,
+			servers:		[],
+			num_servers:	0,
+			num_players:	0,
+			OrderByMain:	'recommended',
+			OrderBy:		['recommended', 'ping', 'address'],
+			info:			GetGamemodeInfo( name )
+		};
 
-	//var gm = GetGamemode( data.gamemode, type );
-	//gm.servers.push( data );
-	
-	ServerTypes[type].servers.push(data);
+		ServerTypes[type].list.push( ServerTypes[type].gamemodes[name] )
 
-	//UpdateGamemodeInfo( data )
+		return ServerTypes[type].gamemodes[name];
+	}*/
 
-	//gm.num_servers += 1; DUMB -Parakeet
-	
-	//gm.num_players += data.players LESS DUMB, Maybe track this somewhere else... -Parakeet
+	window.AddServer = function( type, id, ping, name, desc, map, players, maxplayers, botplayers, pass, lastplayed, address, gamemode, workshopid )
+	{
+		// Make sure this addition is part of our current refresh cycle. I do not like this. -Parakeet
+		if ( id != RequestNum[ type ] ) return;
 
-	// Meh.
-	//gm.element_class = "";
-	//if ( gm.num_players == 0 ) gm.element_class = "noplayers";
-	//if ( gm.num_players > 50 ) gm.element_class = "lotsofplayers";
+		if ( !gamemode ) gamemode = desc; // wtf? -Parakeet
+		if ( maxplayers <= 1 ) return; // the hell? TODO validate lua-side -Parakeet
 
-	//gm.order = gm.num_players + Math.random();
+		var data =
+		{
+			ping:			parseInt( ping ),
+			name:			name,
+			desc:			desc,
+			map:			map,
+			players:		parseInt( players ) - parseInt( botplayers ),
+			maxplayers:		parseInt( maxplayers ),
+			botplayers:		parseInt( botplayers ),
+			pass:			pass, // TODO this is a retarded name -Parakeet
+			lastplayed:		parseInt( lastplayed ),
+			address:		address,
+			gamemode:		gamemode,
+			password:		'', // Does this really need to be here? Maybe?!?
+			workshopid:		workshopid
+		};
 
-	UpdateDigest( Scope, 50 );
-}
+		data.hasmap = DoWeHaveMap( data.map );
+		
+		// Not sure if I want to keep these ratings or not. If we keep it I want to make the indicator smaller. The bar is dumb. -Parakeet
+		data.recommended = data.ping;
+		if ( !data.hasmap ) data.recommended += 20; // We don't have that map -- Is this really a good idea? Content downloads are usually a much bigger issue than the damn map. -Parakeet
+		if ( data.players == 0 ) data.recommended += 100; // Server is empty
+		if ( data.players == data.maxplayers ) data.recommended += 75; // Server is full
+		if ( data.pass ) data.recommended += 300; // If we can't join it, don't put it to the top
 
-/*function MissingGamemodeIcon( element )
-{
-	element.src = "../gamemodes/base/icon24.png";
-	return true;
-}*/
+		data.listen = data.desc.indexOf('[L]') >= 0;
+		if ( data.listen ) data.desc = data.desc.substr( 4 );
 
-function SetPlayerList( serverip, players )
-{
-	if ( !Scope.SelectedServer ) return;
-	if ( Scope.SelectedServer.address != serverip ) return;
+		//var gm = GetGamemode( data.gamemode, type );
+		//gm.servers.push( data );
+		
+		ServerTypes[type].servers.push(data);
 
-	Scope.SelectedServer.playerlist = players
 
-	UpdateDigest( Scope, 50 );
+		//UpdateGamemodeInfo( data )
+
+		//gm.num_servers += 1; DUMB -Parakeet
+		
+		//gm.num_players += data.players LESS DUMB, Maybe track this somewhere else... -Parakeet
+
+		// Meh.
+		//gm.element_class = "";
+		//if ( gm.num_players == 0 ) gm.element_class = "noplayers";
+		//if ( gm.num_players > 50 ) gm.element_class = "lotsofplayers";
+
+		//gm.order = gm.num_players + Math.random();
+
+		UpdateDigest( $rootScope, 1000 ); // update slower than usual
+	}
+
+	/*function MissingGamemodeIcon( element )
+	{
+		element.src = "../gamemodes/base/icon24.png";
+		return true;
+	}*/
+
+	function SetPlayerList( serverip, players )
+	{
+		if ( !$scope.SelectedServer ) return;
+		if ( $scope.SelectedServer.address != serverip ) return;
+
+		$scope.SelectedServer.playerlist = players
+
+		UpdateDigest( $rootscope, 50 );
+	}
 }
